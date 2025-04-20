@@ -1,24 +1,25 @@
-package main
+package api
 
 import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"taskflow/core"
 
 	"github.com/gorilla/mux"
 )
 
-func createTaskHandler(w http.ResponseWriter, r *http.Request) {
-	id := createTask()
+func CreateTaskHandler(w http.ResponseWriter, r *http.Request) {
+	id := core.CreateTask()
 	log.Printf("Получена задача: %s", id)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"task_id": id})
 }
 
-func getTaskHandler(w http.ResponseWriter, r *http.Request) {
+func GetTaskHandler(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
-	task, ok := getTask(id)
+	task, ok := core.GetTask(id)
 	if !ok {
 		http.Error(w, "Задача не найдена", http.StatusNotFound)
 		log.Printf("❌ Задача не найдена: %s", id)

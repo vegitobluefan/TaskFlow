@@ -1,4 +1,4 @@
-package main
+package core
 
 import (
 	"fmt"
@@ -22,35 +22,32 @@ type Task struct {
 	Result string     `json:"result,omitempty"`
 }
 
-type TaskStore struct {
-	sync.RWMutex
-	tasks map[string]*Task
-}
+var (
+	tasks = make(map[string]*Task)
+	mu    sync.RWMutex
+)
 
-var taskStore = &TaskStore{
-	tasks: make(map[string]*Task),
-}
-
-func createTask() string {
+func CreateTask() string {
 	id := generateID()
 	task := &Task{
 		ID:     id,
 		Status: StatusPending,
 	}
 
-	taskStore.Lock()
-	taskStore.tasks[id] = task
-	taskStore.Unlock()
+	mu.Lock()
+	tasks[id] = task
+	mu.Unlock()
 
 	go runTask(task)
+
 	return id
 }
 
-func getTask(id string) (*Task, bool) {
-	taskStore.RLock()
-	defer taskStore.RUnlock()
-	task, ok := taskStore.tasks[id]
-	return task, ok
+func GetTask(id string) (*Task, bool) {
+	mu.RLock()
+	defer mu.RUnlock()
+	t, ok := tasks[id]
+	return t, ok
 }
 
 func runTask(task *Task) {
@@ -61,18 +58,18 @@ func runTask(task *Task) {
 	log.Printf("Выполнение задачи %s займёт %v", task.ID, duration)
 	time.Sleep(duration)
 
-	taskStore.Lock()
+	mu.Lock()
 	task.Status = StatusDone
 	task.Result = fmt.Sprintf("Результат задачи %s", task.ID)
-	taskStore.Unlock()
+	mu.Unlock()
 
-	log.Printf("✅ Задача выполнена: %s", task.ID)
+	log.Printf("✅ Выполнена задача: %s", task.ID)
 }
 
 func updateStatus(id string, status TaskStatus) {
-	taskStore.Lock()
-	if task, exists := taskStore.tasks[id]; exists {
+	mu.Lock()
+	if task, exists := tasks[id]; exists {
 		task.Status = status
 	}
-	taskStore.Unlock()
+	mu.Unlock()
 }
